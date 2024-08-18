@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -8,62 +8,113 @@ import {
   FormLabel,
   Heading,
   Input,
-  Link,
+  Link as ChakraLink,
   Text,
   VStack,
-  Checkbox,
   HStack,
 } from '@chakra-ui/react';
+import { Link, useNavigate } from 'react-router-dom';
 import Footer from '../Footer';
 import Header from '../Header';
 
+const BASE_URL = "http://localhost:8050/api/v1/auth/authenticate";
+
 const LoginForm = () => {
+  const [cin, setCin] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = () => {
+    fetch(BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        cin: cin,
+        password: password,
+      })
+    })
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('Network response was not ok.');
+        
+        
+      })
+      .then(data => {
+
+        console.log(data);
+        console.log('success');
+        
+        localStorage.setItem('accessToken', data.token); // Save token in localStorage
+       console.log(localStorage);
+       
+        
+        navigate('/'); // Redirect to the home page
+      })
+      .catch(error => {
+        console.log('There has been a problem with your fetch operation:', error);
+      });
+  };
+
   return (
     <Box>
-    <Header/>
-    <Flex minH="100vh">
-      {/* Left section */}
-      <Box w="60%" bg="black" color="white" p={10} display="flex" flexDirection="column" justifyContent="center">
-        <VStack spacing={6} align="flex-start">
-          <Heading size="2xl">ORANGE ESHOP</Heading>
-          <Text fontSize="lg">En vous connectant à votre compte, votre parcours d’achat sera plus rapide.
-          Pas de compte client?
-          </Text>
-          <Text fontSize="md">
-          Créez votre compte maintenant et gagnez du temps pour vos prochaines commandes
-          </Text>
-        </VStack>
-      </Box>
-
-      {/* Right section */}
-      <Box w="50%" p={10} display="flex" flexDirection="column" justifyContent="center">
-        <Container maxW="md">
-          <HStack justifyContent="space-between" mb={8}>
-            <Text>T'as pas un comptes?</Text>
-            <Link to="/signup">
-            <Button variant="outline" colorScheme="orange">Créer un compte</Button>
-           </Link>
-          </HStack>
+      <Header />
+      <Flex minH="100vh">
+        <Box w="60%" bg="black" color="white" p={10} display="flex" flexDirection="column" justifyContent="center">
           <VStack spacing={6} align="flex-start">
-            <Heading size="lg">se connecter </Heading>
-            <Text>Saisir vos information de connection</Text>
+            <Heading size="2xl">ORANGE ESHOP</Heading>
+            <Text fontSize="lg">
+              En vous connectant à votre compte, votre parcours d’achat sera plus rapide.
+              Pas de compte client?
+            </Text>
+            <Text fontSize="md">
+              Créez votre compte maintenant et gagnez du temps pour vos prochaines commandes
+            </Text>
           </VStack>
-          <VStack spacing={4} mt={6}>
-            <FormControl>
-              <FormLabel>CIN</FormLabel>
-              <Input type="text" placeholder="CIN 8 chiffres" />
-            </FormControl>
-            <FormControl>
-              <FormLabel>Password</FormLabel>
-              <Input type="password" placeholder="saisir votre mot de passe" />
-              <Link color="orange.500" fontSize="sm" mt={2}>Mot de passe oubliée</Link>
-            </FormControl>
-            <Button colorScheme="orange" w="full">Sign In</Button>
-          </VStack>
-        </Container>
-      </Box>
-    </Flex>
-    <Footer/>
+        </Box>
+
+        <Box w="50%" p={10} display="flex" flexDirection="column" justifyContent="center">
+          <Container maxW="md">
+            <HStack justifyContent="space-between" mb={8}>
+              <Text>T'as pas un compte?</Text>
+              <Link to="/signup">
+                <Button variant="outline" colorScheme="orange">Créer un compte</Button>
+              </Link>
+            </HStack>
+            <VStack spacing={6} align="flex-start">
+              <Heading size="lg">Se connecter</Heading>
+              <Text>Saisir vos informations de connexion</Text>
+            </VStack>
+            <VStack spacing={4} mt={6}>
+              <FormControl>
+                <FormLabel>CIN</FormLabel>
+                <Input
+                  type="text"
+                  placeholder="CIN 8 chiffres"
+                  value={cin}
+                  onChange={(e) => setCin(e.target.value)}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Password</FormLabel>
+                <Input
+                  type="password"
+                  placeholder="Saisir votre mot de passe"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <ChakraLink color="orange.500" fontSize="sm" mt={2}>Mot de passe oublié</ChakraLink>
+              </FormControl>
+              <Button colorScheme="orange" onClick={handleSubmit} w="full">Sign In</Button>
+            </VStack>
+          </Container>
+        </Box>
+      </Flex>
+      <Footer />
     </Box>
   );
 };

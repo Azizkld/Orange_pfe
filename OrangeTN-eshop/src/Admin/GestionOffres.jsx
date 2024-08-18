@@ -26,8 +26,8 @@ import {
 import { FaTrash, FaEdit, FaPlus } from 'react-icons/fa';
 
 const initialOffres = [
-  { id: 1, nom: 'Offre 100 Go', description: 'Accès Internet 100 Go', prix: '72 DT', duree: '30 jours', services: ['SMS Illimités'] },
-  { id: 2, nom: 'Offre 75 Go', description: 'Accès Internet 75 Go', prix: '55 DT', duree: '30 jours', services: ['Appels Illimités'] },
+  { id: 1, nom: 'Offre sms plus', description: 'Accès sms illimites', prix: '72 DT', duree: '30 jours', services: ['SMS Illimités'] },
+  { id: 2, nom: 'Offre appel plus', description: 'Accès appels illimites', prix: '55 DT', duree: '30 jours', services: ['Appels Illimités'] },
   // Add more offers here
 ];
 
