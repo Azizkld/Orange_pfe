@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -26,75 +26,141 @@ import {
   useColorModeValue,
 } from '@chakra-ui/react';
 import { FaTrash } from 'react-icons/fa';
-
-const initialContrats = [
-  { id: 1, code: 'C001', nomClient: 'John Doe', offre: 'Offre 100 Go',numero:54369857, dateActivation: '2023-01-01', dateExpiration: '2024-01-01', statut: 'Actif' },
-  { id: 2, code: 'C002', nomClient: 'Jane Smith', offre: 'Offre 75 Go',numero:54368957, dateActivation: '2022-01-01', dateExpiration: '2023-01-01', statut: 'Expiré' },
-  // Ajouter d'autres contrats ici
-];
+import Cookies from 'js-cookie';
 
 const GestionContrats = () => {
-  const [contrats, setContrats] = useState(initialContrats);
+  const [contrats, setContrats] = useState([]);
   const [filterStatus, setFilterStatus] = useState('Tous');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedContrat, setSelectedContrat] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const toast = useToast();
-
-  const handleStatusChange = (event) => {
-    setFilterStatus(event.target.value);
-  };
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value.toLowerCase());
   };
 
-  const handleOpenDeleteModal = (contrat) => {
-    setSelectedContrat(contrat);
-    onOpen();
+  // Fetch contracts when the component mounts
+  useEffect(() => {
+    const fetchContracts = async () => {
+      try {
+        const token = Cookies.get('accessToken'); // Get the token from cookies
+
+        if (!token) {
+          throw new Error('Token manquant. Veuillez vous reconnecter.');
+        }
+
+        const response = await fetch('http://localhost:8050/api/v1/Contract/findAllContract', {
+          headers: {
+            'Authorization': `Bearer ${token}`, // Send token in headers
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Erreur lors du fetch des contrats');
+        }
+
+        const data = await response.json();
+        setContrats(data.contracts || []); // Set contracts, or an empty array if no contracts found
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: 'Erreur',
+          description: "Impossible de gérer les contrats",
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
+    fetchContracts();
+  }, [toast]);
+
+  // Handle deletion of a contract
+  const handleDeleteContrat = async () => {
+    try {
+      const token = Cookies.get('accessToken');
+      if (!token) {
+        throw new Error('Token manquant. Veuillez vous reconnecter.');
+      }
+
+      const response = await fetch(`http://localhost:8050/api/v1/Contract/supprimerContract/${selectedContrat}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la suppression du contrat');
+      }
+
+      // Remove the deleted contract from the state
+      setContrats(contrats.filter(contrat => contrat.id !== selectedContrat));
+      onDeleteClose(); // Close the modal
+
+      toast({
+        title: 'Succès',
+        description: "Contrat supprimé avec succès",
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Erreur',
+        description: "Impossible de supprimer le contrat",
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
-  const handleDeleteContrat = () => {
-    setContrats(contrats.filter(contrat => contrat.id !== selectedContrat.id));
-    onClose();
-    toast({
-      title: 'Contrat supprimé.',
-      description: 'Le contrat a été supprimé avec succès.',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+  // Handle opening of the delete confirmation modal
+  const handleOpenDeleteModal = (id) => {
+    setSelectedContrat(id);
+    onDeleteOpen();
   };
 
-  const filteredContrats = contrats.filter(contrat => {
-    const matchesStatus = filterStatus === 'Tous' || contrat.statut === filterStatus;
-    const matchesSearch = contrat.nomClient.toLowerCase().includes(searchTerm) || contrat.code.toLowerCase().includes(searchTerm);
-    return matchesStatus && matchesSearch;
+  const filteredContrats = contrats.filter((contrat) => {
+    const matchesStatus =
+      filterStatus === 'Tous' ||
+      (filterStatus === 'Actif' && contrat.coStatus == 1) ||
+      (filterStatus === 'Expiré' && contrat.coStatus != 1);
+
+    const matchesSearchTerm =
+      !searchTerm ||
+      `${contrat.utilisateurAll.utFName} ${contrat.utilisateurAll.utLName}`
+        .toLowerCase()
+        .includes(searchTerm);
+
+    return matchesStatus && matchesSearchTerm;
   });
-
-  const bg = useColorModeValue('white', 'gray.800');
-  const boxShadow = useColorModeValue('sm', 'sm-dark');
 
   return (
     <Box p={4}>
-      <HStack spacing={4} mb={6}>
-        <Select
-          value={filterStatus}
-          onChange={handleStatusChange}
-          w="200px"
-        >
-          <option value="Tous">Tous</option>
-          <option value="Actif">Actif</option>
-          <option value="Expiré">Expiré</option>
-        </Select>
-        <Input
-          placeholder="Rechercher par nom ou code"
-          value={searchTerm}
-          onChange={handleSearchChange}
-          w="300px"
-        />
-      </HStack>
-      <Box bg={bg} boxShadow={boxShadow} borderRadius="md" overflowX="auto">
+      <VStack spacing={4} align="stretch">
+        <HStack spacing={4}>
+          <Input
+            placeholder="Rechercher par nom ou code"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            w="300px"
+          />
+          <Select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="Tous">Tous</option>
+            <option value="Actif">Actif</option>
+            <option value="Expiré">Expiré</option>
+          </Select>
+        </HStack>
+
         <Table variant="simple">
           <Thead>
             <Tr>
@@ -109,46 +175,45 @@ const GestionContrats = () => {
             </Tr>
           </Thead>
           <Tbody>
-            {filteredContrats.map(contrat => (
+            {filteredContrats.map((contrat) => (
               <Tr key={contrat.id}>
-                <Td>{contrat.code}</Td>
-                <Td>{contrat.nomClient}</Td>
-                <Td>{contrat.offre}</Td>
-                <Td>{contrat.numero}</Td>
-                <Td>{contrat.dateActivation}</Td>
-                <Td>{contrat.dateExpiration}</Td>
+                <Td>{contrat.coCode}</Td>
+                <Td>{contrat.utilisateurAll.utFName} {contrat.utilisateurAll.utLName}</Td>
+                <Td>{contrat.rateplan.rpName}</Td>
+                <Td>{contrat.num.numPhoneNumber}</Td>
+                <Td>{contrat.coActivDate}</Td>
+                <Td>{contrat.coExpirDate}</Td>
                 <Td>
-                  <Tag colorScheme={contrat.statut === 'Actif' ? 'green' : 'red'}>
-                    {contrat.statut}
+                  <Tag colorScheme={contrat.coStatus == 1 ? 'green' : 'red'}>
+                    {contrat.coStatus == 1 ? 'Actif' : 'Expiré'}
                   </Tag>
                 </Td>
                 <Td>
                   <IconButton
                     icon={<FaTrash />}
                     colorScheme="red"
-                    aria-label="Delete contrat"
-                    onClick={() => handleOpenDeleteModal(contrat)}
+                    onClick={() => handleOpenDeleteModal(contrat.id)}
                   />
                 </Td>
               </Tr>
             ))}
           </Tbody>
         </Table>
-      </Box>
+      </VStack>
 
-      {/* Modal de suppression */}
-      <Modal isOpen={isOpen} onClose={onClose}>
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Confirmer la suppression</ModalHeader>
           <ModalBody>
-            Êtes-vous sûr de vouloir supprimer le contrat {selectedContrat?.code} ?
+            <Text>Êtes-vous sûr de vouloir supprimer ce contrat ?</Text>
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="red" onClick={handleDeleteContrat}>
               Supprimer
             </Button>
-            <Button variant="ghost" onClick={onClose} ml={3}>
+            <Button onClick={onDeleteClose} ml={3}>
               Annuler
             </Button>
           </ModalFooter>

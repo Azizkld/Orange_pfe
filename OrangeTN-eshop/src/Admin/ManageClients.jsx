@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Button,
-  HStack,
   VStack,
+  HStack,
   Text,
-  Avatar,
+  Button,
+  Input,
+  useToast,
   Table,
   Thead,
   Tbody,
@@ -13,8 +14,7 @@ import {
   Th,
   Td,
   IconButton,
-  useColorModeValue,
-  useToast,
+  useDisclosure,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -22,60 +22,93 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
-  useDisclosure,
-  Image,
-  Input,
+  Avatar,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { FaCheck, FaTrash } from 'react-icons/fa';
-
-const initialVerifiedUsers = [
-  { id: 1, nom: 'Aziz', prenom: 'Khaled', cin: '12345678', email: 'aziz@example.com', date: '01 Aug 2024' },
-  { id: 2, nom: 'Fedi', prenom: 'Khaled', cin: '87654321', email: 'fedi@example.com', date: '02 Aug 2024' },
-];
-
-const initialWaitingUsers = [
-  { id: 3, nom: 'Aziz', prenom: 'Khaled', cin: '12312312', email: 'aziz@example.com', frontImage: '/path/to/frontImage.jpg', backImage: '/path/to/backImage.jpg' },
-  { id: 4, nom: 'Fedi', prenom: 'Khaled', cin: '87687687', email: 'fedi@example.com', frontImage: '/path/to/frontImage2.jpg', backImage: '/path/to/backImage2.jpg' },
-];
+import Cookies from 'js-cookie';
 
 const GererClients = () => {
-  const [activeTab, setActiveTab] = useState('verified');
-  const [verifiedUsers, setVerifiedUsers] = useState(initialVerifiedUsers);
-  const [waitingUsers, setWaitingUsers] = useState(initialWaitingUsers);
-  const [userToDelete, setUserToDelete] = useState(null);
+  const [utilisateurs, setUtilisateurs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
-  const toast = useToast();
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [activeTab, setActiveTab] = useState('waiting');
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const toast = useToast();
 
-  const handleApproveUser = (id) => {
-    const userToApprove = waitingUsers.find(user => user.id === id);
-    if (userToApprove) {
-      setVerifiedUsers([...verifiedUsers, userToApprove]);
-      setWaitingUsers(waitingUsers.filter(user => user.id !== id));
+  // Function to fetch users
+  const fetchUtilisateurs = async () => {
+    try {
+      const token = Cookies.get('accessToken');
+
+      if (!token) {
+        throw new Error('Token manquant. Veuillez vous reconnecter.');
+      }
+
+      const response = await fetch('http://localhost:8050/api/UtilisateurAll/afficherListeUtilisateurs', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors du fetch des utilisateurs');
+      }
+
+      const data = await response.json();
+      setUtilisateurs(data.filter(user => user.id !== 2)); // Exclude user with id=2
+    } catch (error) {
+      console.error('Error fetching users:', error);
       toast({
-        title: 'Utilisateur approuvé.',
-        description: `${userToApprove.nom} ${userToApprove.prenom} a été approuvé.`,
-        status: 'success',
+        title: 'Erreur',
+        description: "Impossible de gérer les utilisateurs",
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
     }
   };
 
-  const handleDeleteUser = (id, isVerified) => {
-    setUserToDelete({ id, isVerified });
+  // Fetch users when the component mounts
+  useEffect(() => {
+    fetchUtilisateurs();
+  }, [toast]);
+
+  // Fetch users whenever the active tab changes
+  useEffect(() => {
+    fetchUtilisateurs();
+  }, [activeTab]);
+
+  const handleDeleteUser = (id) => {
+    setUserToDelete(id);
     onOpen();
   };
 
-  const confirmDeleteUser = () => {
-    if (userToDelete) {
-      const { id, isVerified } = userToDelete;
-      if (isVerified) {
-        setVerifiedUsers(verifiedUsers.filter(user => user.id !== id));
-      } else {
-        setWaitingUsers(waitingUsers.filter(user => user.id !== id));
+  const confirmDeleteUser = async () => {
+    try {
+      const token = Cookies.get('accessToken');
+
+      if (!token) {
+        throw new Error('Token manquant. Veuillez vous reconnecter.');
       }
+
+      const response = await fetch(`http://localhost:8050/api/UtilisateurAll/supprimerUtilisateurId?id=${userToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('403 Forbidden - You may not have the necessary permissions.');
+        }
+        throw new Error('Erreur lors de la suppression de l\'utilisateur');
+      }
+
+      setUtilisateurs(utilisateurs.filter(utilisateur => utilisateur.id !== userToDelete));
+
       toast({
         title: 'Utilisateur supprimé.',
         description: 'L\'utilisateur a été supprimé avec succès.',
@@ -83,76 +116,95 @@ const GererClients = () => {
         duration: 3000,
         isClosable: true,
       });
+
       onClose();
+    } catch (error) {
+      console.error('Error deleting user:', error.message);
+      toast({
+        title: 'Erreur',
+        description: error.message || "Impossible de supprimer l'utilisateur",
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
-  const handleImageClick = (imageSrc) => {
-    setSelectedImage(imageSrc);
-    onOpen();
+  const handleApproveUser = async (id) => {
+    try {
+      const token = Cookies.get('accessToken');
+
+      if (!token) {
+        throw new Error('Token manquant. Veuillez vous reconnecter.');
+      }
+
+      const response = await fetch('http://localhost:8050/api/status/change', {
+        method: 'POST',  // Ensure this matches your API method (POST)
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: id }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('403 Forbidden - You may not have the necessary permissions.');
+        }
+        throw new Error('Erreur lors de la modification du statut de l\'utilisateur');
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error('API response was not successful');
+      }
+
+      // Immediately move the user to the verified list by re-fetching the users
+      fetchUtilisateurs();
+
+      toast({
+        title: 'Utilisateur approuvé.',
+        description: 'L\'utilisateur a été approuvé avec succès.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error:', error.message);
+      toast({
+        title: 'Erreur',
+        description: error.message || "Impossible d'approuver l'utilisateur",
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
-  const filteredVerifiedUsers = verifiedUsers.filter(user =>
-    `${user.nom} ${user.prenom}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredWaitingUsers = waitingUsers.filter(user =>
-    `${user.nom} ${user.prenom}`.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUtilisateurs = utilisateurs.filter(utilisateur =>
+    `${utilisateur.utFName} ${utilisateur.utLName}`.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    (activeTab === 'verified' ? utilisateur.utStatus : !utilisateur.utStatus)
   );
 
   const bg = useColorModeValue('white', 'gray.800');
   const boxShadow = useColorModeValue('sm', 'sm-dark');
 
-  const renderUserRow = (user, isVerified) => (
-    <Tr key={user.id}>
-      <Td><Avatar name={`${user.nom} ${user.prenom}`} size="sm" /></Td>
-      <Td>{user.nom} {user.prenom}</Td>
-      <Td>{user.cin}</Td>
-      <Td>{user.email}</Td>
-      {!isVerified && (
-        <Td>
-          <HStack>
-            <Image src={user.frontImage} alt="Front of CIN" boxSize="50px" cursor="pointer" onClick={() => handleImageClick(user.frontImage)} />
-            <Image src={user.backImage} alt="Back of CIN" boxSize="50px" cursor="pointer" onClick={() => handleImageClick(user.backImage)} />
-          </HStack>
-        </Td>
-      )}
-      <Td>
-        {isVerified ? (
-          <IconButton
-            icon={<FaTrash />}
-            colorScheme="red"
-            aria-label="Delete user"
-            onClick={() => handleDeleteUser(user.id, true)}
-          />
-        ) : (
-          <>
-            <IconButton
-              icon={<FaCheck />}
-              colorScheme="green"
-              aria-label="Approve user"
-              onClick={() => handleApproveUser(user.id)}
-              mr={2}
-            />
-            <IconButton
-              icon={<FaTrash />}
-              colorScheme="red"
-              aria-label="Reject user"
-              onClick={() => handleDeleteUser(user.id, false)}
-            />
-          </>
-        )}
-      </Td>
-    </Tr>
-  );
-
   return (
     <Box p={4}>
       <HStack spacing={4} mb={6}>
-        <Button colorScheme="orange" onClick={() => setActiveTab('verified')} variant={activeTab === 'verified' ? 'solid' : 'outline'}>
+        <Button
+          colorScheme="orange"
+          onClick={() => setActiveTab('verified')}
+          variant={activeTab === 'verified' ? 'solid' : 'outline'}
+        >
           Comptes Vérifiés
         </Button>
-        <Button colorScheme="orange" onClick={() => setActiveTab('waiting')} variant={activeTab === 'waiting' ? 'solid' : 'outline'}>
+        <Button
+          colorScheme="orange"
+          onClick={() => setActiveTab('waiting')}
+          variant={activeTab === 'waiting' ? 'solid' : 'outline'}
+        >
           Comptes en Attente
         </Button>
         <Input
@@ -167,38 +219,53 @@ const GererClients = () => {
         <Table variant="simple">
           <Thead>
             <Tr>
-              <Th></Th>
+              <Th>Avatar</Th>
               <Th>Nom Prénom</Th>
               <Th>CIN</Th>
               <Th>Email</Th>
-              {activeTab === 'waiting' && <Th>Image</Th>}
               <Th>Actions</Th>
             </Tr>
           </Thead>
           <Tbody>
-            {activeTab === 'verified' && filteredVerifiedUsers.map(user => renderUserRow(user, true))}
-            {activeTab === 'waiting' && filteredWaitingUsers.map(user => renderUserRow(user, false))}
+            {filteredUtilisateurs.length > 0 ? (
+              filteredUtilisateurs.map(utilisateur => (
+                <Tr key={utilisateur.id}>
+                  <Td><Avatar name={`${utilisateur.utFName} ${utilisateur.utLName}`} size="sm" /></Td>
+                  <Td>{utilisateur.utFName} {utilisateur.utLName}</Td>
+                  <Td>{utilisateur.utCin}</Td>
+                  <Td>{utilisateur.utMail}</Td>
+                  <Td>
+                    {activeTab === 'waiting' && (
+                      <IconButton
+                        icon={<FaCheck />}
+                        colorScheme="green"
+                        aria-label="Approve utilisateur"
+                        onClick={() => handleApproveUser(utilisateur.id)}
+                        mr={2}
+                      />
+                    )}
+                    <IconButton
+                      icon={<FaTrash />}
+                      colorScheme="red"
+                      aria-label="Delete utilisateur"
+                      onClick={() => handleDeleteUser(utilisateur.id)}
+                    />
+                  </Td>
+                </Tr>
+              ))
+            ) : (
+              <Tr>
+                <Td colSpan={5} textAlign="center">
+                  Aucun utilisateur trouvé.
+                </Td>
+              </Tr>
+            )}
           </Tbody>
         </Table>
       </Box>
 
-      {/* Image Modal */}
-      <Modal isOpen={selectedImage !== null} onClose={() => setSelectedImage(null)} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Image CIN</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {selectedImage && <Image src={selectedImage} alt="CIN" w="full" />}
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" onClick={() => setSelectedImage(null)}>Fermer</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={isOpen && !selectedImage} onClose={onClose}>
+      <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Confirmation de suppression</ModalHeader>

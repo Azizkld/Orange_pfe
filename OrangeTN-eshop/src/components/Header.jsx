@@ -4,6 +4,7 @@ import { ChevronDownIcon } from '@chakra-ui/react';
 import Nav from './Nav';
 import logo from "../images/logo.png";
 import { Link } from 'react-router-dom';
+import Logout from './Auth/Logout';
 
 const Header = () => {
   const [header, setHeader] = useState(false);
@@ -46,7 +47,6 @@ const Header = () => {
       >
         <Flex align="start">
           <Link to={"/"}>
-            <img src={logo} alt="Logo" width={60} height={40} />
           </Link>
         </Flex>
         <Flex align="center">
@@ -68,6 +68,11 @@ const Header = () => {
                 <Link to="/Login">
                   Se connecter
                 </Link>
+              </MenuItem>
+              <MenuItem>
+                
+                 
+              <Logout/>
               </MenuItem>
             </MenuList>
           </Menu>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
+
 import {
   Box,
   SimpleGrid,
@@ -11,6 +12,8 @@ import Header from '../Header';
 import Footer from '../Footer';
 import ContratCard from './ContratCard';
 import PdfGenerated from './PdfGenerated';
+import axios from 'axios';
+
 
 const contrats = [
   { id: 1, code: 'C001', status: 'actif', activationDate: '2023-01-01', expirationDate: '2024-01-01', numero: '12345678', typeNumero: 'SIM', offreName: 'Offre 100 Go' },
@@ -27,6 +30,30 @@ const contrats = [
 const itemsPerPage = 5;
 
 const ContratList = () => {
+  /*
+  const [contrats, setContrats] = useState([]);
+  const fetchData = async () => {
+
+  //  const tokenLogin = localStorage.getItem('tokenLogin');
+    try {
+      const response = await axios.get(`http://localhost:8050/api/v1/Contract/findAllContract`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+           // 'Authorization': `Bearer ${tokenLogin}`,
+          }
+        }
+      );
+console.log('test :'+JSON.stringify(response.data))
+     setContrats(response.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  useEffect(() => {
+    fetchData();
+  }, []);
+*/
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedContrat, setSelectedContrat] = useState(null);
 

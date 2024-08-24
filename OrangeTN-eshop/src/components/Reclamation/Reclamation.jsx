@@ -15,22 +15,70 @@ import {
 import claim from "../../images/claim.png";
 import Header from '../Header';
 import Footer from '../Footer';
+import Cookies from 'js-cookie'; // Import js-cookie to access cookies
 
 const Reclamation = () => {
   const [reclamation, setReclamation] = useState(''); // State to track the input value
   const toast = useToast();
 
   const handleSubmit = () => {
-    if (reclamation.trim() !== '') {
+    const userId = Cookies.get('userID'); // Get the user ID from cookies
+    const token = Cookies.get('accessToken'); // Get the access token from cookies
+
+    if (!userId || !token) {
       toast({
-        title: 'Réclamation envoyée.',
-        description: 'Votre réclamation a été soumise avec succès.',
-        status: 'success',
+        title: 'Erreur',
+        description: "Vous devez être connecté pour soumettre une réclamation.",
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
-      setReclamation(''); // Clear the input field
-      // Additional form submission logic here if necessary
+      return;
+    }
+
+    if (reclamation.trim() !== '') {
+      fetch('http://localhost:8050/api/claim/ajouterReclamation', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`, // Send the token in the header
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          desc: reclamation,
+          utilisateurId: userId,
+        }),
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.isSuccessfull) {
+            toast({
+              title: 'Réclamation envoyée.',
+              description: 'Votre réclamation a été soumise avec succès.',
+              status: 'success',
+              duration: 3000,
+              isClosable: true,
+            });
+            setReclamation(''); // Clear the input field
+          } else {
+            toast({
+              title: 'Erreur',
+              description: "Erreur lors de l'envoi de la réclamation.",
+              status: 'error',
+              duration: 3000,
+              isClosable: true,
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          toast({
+            title: 'Erreur',
+            description: "Erreur lors de l'envoi de la réclamation.",
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
+        });
     }
   };
 

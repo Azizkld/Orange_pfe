@@ -5,7 +5,7 @@ import Logout from './Auth/Logout'; // Import the Logout component
 
 const slugData = ["APROPOS", "PROFILE", "NUMERO", "OFFRES", "CONTRAT", "RECLAMATION"];
 const numeroSubmenu = ["Acheter Numero", "convertir sim/esim", "convertir esim/sim"];
-const profileSubmenu = ["créer un compte", "se connecter", "logout"];
+//const profileSubmenu = ["créer un compte", "se connecter", ];
 
 const Nav = ({ slug }) => {
   const [activeLink, setActiveLink] = useState(slug);
@@ -31,8 +31,8 @@ const Nav = ({ slug }) => {
           px={{ base: 1, lg: 2 }}
           borderRadius="full"
           position="relative"
-          onMouseEnter={slug === "NUMERO" || slug === "PROFILE" ? handleMouseEnter : null}
-          onMouseLeave={slug === "NUMERO" || slug === "PROFILE" ? handleMouseLeave : null}
+          onMouseEnter={slug === "NUMERO"  ? handleMouseEnter : null}
+          onMouseLeave={slug === "NUMERO"  ? handleMouseLeave : null}
           _after={{
             content: '""',
             position: 'absolute',
@@ -110,54 +110,7 @@ const Nav = ({ slug }) => {
               ))}
             </Box>
           )}
-          {slug === "PROFILE" && isSubmenuOpen && (
-            <Box
-              position="absolute"
-              top="100%"
-              left="0"
-              bg="black"
-              boxShadow="lg"
-              rounded="md"
-              zIndex="10"
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              py={2}
-              w="200px"
-            >
-              {profileSubmenu.map((submenu, index) => (
-                submenu === "logout" ? (
-                  <Box key={index} p={2}>
-                    <Logout />
-                  </Box>
-                ) : (
-                  <RouterLink
-                    key={index}
-                    to={`/${submenu.replace(/\s+/g, '-').toLowerCase()}`}
-                    style={{
-                      display: 'block',
-                      padding: '10px 20px',
-                      textDecoration: 'none',
-                      color: 'white',
-                      fontSize: '14px',
-                      fontWeight: 'normal',
-                      transition: 'background 0.3s ease-in-out',
-                    }}
-                    onClick={() => handleClick(submenu)}
-                  >
-                    <Text
-                      _hover={{
-                        bg: 'orange.500',
-                        color: 'white',
-                        borderRadius: 'md',
-                      }}
-                    >
-                      {submenu}
-                    </Text>
-                  </RouterLink>
-                )
-              ))}
-            </Box>
-          )}
+          
         </Box>
       ))}
     </Flex>

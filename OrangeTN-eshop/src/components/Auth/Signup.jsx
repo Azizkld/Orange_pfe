@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -12,16 +12,78 @@ import {
   Text,
   VStack,
   HStack,
+  useToast,
 } from '@chakra-ui/react';
 import Footer from '../Footer';
 import Header from '../Header';
 
 const SignupForm = () => {
+  const [firstname, setFirstname] = useState('');
+  const [lastname, setLastname] = useState('');
+  const [email, setEmail] = useState('');
+  const [cin, setCin] = useState('');
+  const [password, setPassword] = useState('');
+  const [utCinFrontImage, setUtCinFrontImage] = useState(null);
+  const [utCinBackImage, setUtCinBackImage] = useState(null);
+  const toast = useToast();
+
+  const handleFileChangeFront = (event) => {
+    setUtCinFrontImage(event.target.files[0]);
+  };
+
+  const handleFileChangeBack = (event) => {
+    setUtCinBackImage(event.target.files[0]);
+  };
+
+  const handleSubmit = async () => {
+    const formData = new FormData();
+    formData.append('firstname', firstname);
+    formData.append('lastname', lastname);
+    formData.append('email', email);
+    formData.append('cin', cin);
+    formData.append('password', password);
+    formData.append('utCinFrontImage', utCinFrontImage);
+    formData.append('utCinBackImage', utCinBackImage);
+
+    try {
+      const response = await fetch('http://localhost:8050/api/v1/auth/register', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Compte créé avec succès.',
+          description: "Vous pouvez maintenant vous connecter.",
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: 'Erreur de création du compte.',
+          description: errorData.message || 'Une erreur est survenue.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erreur de connexion.',
+        description: 'Impossible de contacter le serveur.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <Box>
-      <Header/>
+      <Header />
       <Flex minH="100vh">
-        {/* Left section */}
         <Box w="60%" bg="black" color="white" p={10} display="flex" flexDirection="column" justifyContent="center">
           <VStack spacing={6} align="flex-start">
             <Heading size="2xl">ORANGE ESHOP</Heading>
@@ -32,7 +94,6 @@ const SignupForm = () => {
           </VStack>
         </Box>
 
-        {/* Right section */}
         <Box w="50%" p={10} display="flex" flexDirection="column" justifyContent="center">
           <Container maxW="md">
             <HStack justifyContent="space-between" mb={8}>
@@ -48,42 +109,38 @@ const SignupForm = () => {
             <VStack spacing={4} mt={6}>
               <FormControl>
                 <FormLabel>Nom</FormLabel>
-                <Input type="text" placeholder="Nom" />
+                <Input type="text" placeholder="Nom" value={firstname} onChange={(e) => setFirstname(e.target.value)} />
               </FormControl>
               <FormControl>
                 <FormLabel>Prénom</FormLabel>
-                <Input type="text" placeholder="Prénom" />
+                <Input type="text" placeholder="Prénom" value={lastname} onChange={(e) => setLastname(e.target.value)} />
               </FormControl>
               <FormControl>
                 <FormLabel>Email</FormLabel>
-                <Input type="email" placeholder="Email" />
+                <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </FormControl>
               <FormControl>
                 <FormLabel>CIN</FormLabel>
-                <Input type="text" placeholder="CIN 8 chiffres" />
+                <Input type="text" placeholder="CIN 8 chiffres" value={cin} onChange={(e) => setCin(e.target.value)} />
               </FormControl>
               <FormControl>
                 <FormLabel>Mot de passe</FormLabel>
-                <Input type="password" placeholder="Saisir votre mot de passe" />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Confirmer le mot de passe</FormLabel>
-                <Input type="password" placeholder="Confirmer votre mot de passe" />
+                <Input type="password" placeholder="Saisir votre mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} />
               </FormControl>
               <FormControl>
                 <FormLabel>Photo CIN (Recto)</FormLabel>
-                <Input type="file" accept="image/*" />
+                <Input type="file" accept="image/*" onChange={handleFileChangeFront} />
               </FormControl>
               <FormControl>
                 <FormLabel>Photo CIN (Verso)</FormLabel>
-                <Input type="file" accept="image/*" />
+                <Input type="file" accept="image/*" onChange={handleFileChangeBack} />
               </FormControl>
-              <Button colorScheme="orange" w="full">Créer un compte</Button>
+              <Button colorScheme="orange" w="full" onClick={handleSubmit}>Créer un compte</Button>
             </VStack>
           </Container>
         </Box>
       </Flex>
-      <Footer/>
+      <Footer />
     </Box>
   );
 };

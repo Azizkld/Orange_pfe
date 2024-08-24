@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -6,7 +6,6 @@ import {
   Text,
   Button,
   Input,
-  Select,
   useToast,
   useDisclosure,
   Modal,
@@ -31,69 +30,101 @@ import {
   TabPanel,
   useColorModeValue,
 } from '@chakra-ui/react';
-import { FaTrash, FaReply, FaArchive } from 'react-icons/fa';
-
-const initialReclamations = [
-  {
-    id: 1,
-    description: "Problème avec la connexion Internet.",
-    date: "2024-08-01",
-    statut: "En attente",
-    user: {
-      nom: 'Aziz',
-      prenom: 'Khaled',
-      cin: '12345678',
-    }
-  },
-  {
-    id: 2,
-    description: "Facture incorrecte pour le mois dernier.",
-    date: "2024-08-02",
-    statut: "Résolu",
-    user: {
-      nom: 'Fedi',
-      prenom: 'Khaled',
-      cin: '87654321',
-    }
-  },
-  // Add more reclamations here
-];
+import { FaTrash, FaReply } from 'react-icons/fa';
+import Cookies from 'js-cookie';
 
 const GestionReclamations = () => {
-  const [activeReclamations, setActiveReclamations] = useState(initialReclamations.filter(r => r.statut !== "Résolu"));
-  const [archivedReclamations, setArchivedReclamations] = useState(initialReclamations.filter(r => r.statut === "Résolu"));
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterDate, setFilterDate] = useState("");
-  const [filterStatus, setFilterStatus] = useState("Toutes");
+  const [activeReclamations, setActiveReclamations] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterDate, setFilterDate] = useState('');
   const [showMore, setShowMore] = useState({});
   const [selectedReclamation, setSelectedReclamation] = useState(null);
   const [response, setResponse] = useState('');
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isReplyOpen, onOpen: onReplyOpen, onClose: onReplyClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
 
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
+  useEffect(() => {
+    const fetchReclamations = async () => {
+      try {
+        const token = Cookies.get('accessToken'); // Get the token from cookies
 
-  const handleDateChange = (event) => {
-    setFilterDate(event.target.value);
-  };
+        if (!token) {
+          throw new Error('Token manquant. Veuillez vous reconnecter.');
+        }
 
-  const handleStatusChange = (event) => {
-    setFilterStatus(event.target.value);
-  };
+        const response = await fetch('http://localhost:8050/api/claim/afficherListReclamation', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`, // Send token in headers
+          },
+        });
 
-  const handleDeleteReclamation = (id) => {
-    setActiveReclamations(activeReclamations.filter(reclamation => reclamation.id !== id));
-    onClose();
-    toast({
-      title: "Réclamation supprimée.",
-      description: "La réclamation a été supprimée avec succès.",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
+        if (!response.ok) {
+          throw new Error('Erreur lors de la récupération des réclamations.');
+        }
+
+        const data = await response.json();
+
+        if (data.isSuccessfull && data.claims) {
+          setActiveReclamations(data.claims);
+        } else {
+          throw new Error(data.message || "Aucune réclamation trouvée.");
+        }
+      } catch (error) {
+        console.error('Erreur:', error.message); // Log the error message
+        toast({
+          title: 'Erreur',
+          description: error.message || "Impossible de charger les réclamations.",
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
+    fetchReclamations();
+  }, [toast]);
+
+  const handleDeleteReclamation = async () => {
+    try {
+      const token = Cookies.get('accessToken'); // Get the token from cookies
+
+      if (!token) {
+        throw new Error('Token manquant. Veuillez vous reconnecter.');
+      }
+
+      const response = await fetch(`http://localhost:8050/api/claim/supprimerReclamationId?clId=${selectedReclamation.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`, // Send token in headers
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la suppression de la réclamation.');
+      }
+
+      setActiveReclamations(activeReclamations.filter(reclamation => reclamation.id !== selectedReclamation.id));
+      toast({
+        title: "Réclamation supprimée.",
+        description: "La réclamation a été supprimée avec succès.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      onDeleteClose(); // Close the delete confirmation modal
+    } catch (error) {
+      console.error('Erreur:', error.message); // Log the error message
+      toast({
+        title: 'Erreur',
+        description: error.message || "Impossible de supprimer la réclamation.",
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const handleShowMoreToggle = (id) => {
@@ -105,7 +136,7 @@ const GestionReclamations = () => {
 
   const handleOpenDeleteModal = (reclamation) => {
     setSelectedReclamation(reclamation);
-    onOpen();
+    onDeleteOpen(); // Open the delete confirmation modal
   };
 
   const handleOpenReplyModal = (reclamation) => {
@@ -113,7 +144,7 @@ const GestionReclamations = () => {
     onReplyOpen();
   };
 
-  const handleSendResponse = () => {
+  const handleSendResponse = async () => {
     if (response.trim() === '') {
       toast({
         title: "Erreur",
@@ -125,34 +156,55 @@ const GestionReclamations = () => {
       return;
     }
 
-    // Move the reclamation to the archive after setting it to resolved
-    setActiveReclamations(activeReclamations.map(reclamation => 
-      reclamation.id === selectedReclamation.id 
-        ? { ...reclamation, statut: "Résolu" } 
-        : reclamation
-    ));
-    
-    const resolvedReclamation = activeReclamations.find(reclamation => reclamation.id === selectedReclamation.id);
-    setArchivedReclamations([...archivedReclamations, resolvedReclamation]);
+    try {
+      const token = Cookies.get('accessToken'); // Get the token from cookies
 
-    setActiveReclamations(activeReclamations.filter(reclamation => reclamation.id !== selectedReclamation.id));
+      if (!token) {
+        throw new Error('Token manquant. Veuillez vous reconnecter.');
+      }
 
-    onReplyClose();
-    toast({
-      title: "Réclamation résolue.",
-      description: "La réclamation a été marquée comme résolue et archivée.",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
+      const res = await fetch(`http://localhost:8050/api/claim/repondreReclamation/${selectedReclamation.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clReponce: response
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error('Erreur lors de l\'envoi de la réponse.');
+      }
+
+      setActiveReclamations(activeReclamations.filter(reclamation => reclamation.id !== selectedReclamation.id));
+
+      onReplyClose();
+      toast({
+        title: "Réclamation résolue.",
+        description: "La réclamation a été marquée comme résolue.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Erreur:', error.message);
+      toast({
+        title: 'Erreur',
+        description: error.message || "Erreur lors de l'envoi de la réponse.",
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const filteredReclamations = activeReclamations.filter(reclamation => {
     return (
-      (filterStatus === "Toutes" || reclamation.statut === filterStatus) &&
       (filterDate === "" || reclamation.date === filterDate) &&
-      (reclamation.user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       reclamation.user.prenom.toLowerCase().includes(searchTerm.toLowerCase()))
+      (reclamation.user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       reclamation.user.lastName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   });
 
@@ -164,7 +216,6 @@ const GestionReclamations = () => {
       <Tabs variant="enclosed">
         <TabList>
           <Tab>Réclamations Actives</Tab>
-          <Tab>Réclamations Archivées</Tab>
         </TabList>
         <TabPanels>
           <TabPanel>
@@ -172,24 +223,15 @@ const GestionReclamations = () => {
               <Input
                 placeholder="Rechercher par nom..."
                 value={searchTerm}
-                onChange={handleSearchChange}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
               <Input
                 type="date"
                 placeholder="Filtrer par date"
                 value={filterDate}
-                onChange={handleDateChange}
+                onChange={(e) => setFilterDate(e.target.value)}
                 w="200px"
               />
-              <Select
-                value={filterStatus}
-                onChange={handleStatusChange}
-                w="200px"
-              >
-                <option value="Toutes">Toutes</option>
-                <option value="En attente">En attente</option>
-                <option value="Résolu">Résolu</option>
-              </Select>
             </HStack>
             <Box bg={bg} boxShadow={boxShadow} borderRadius="md" overflowX="auto">
               <Table variant="simple">
@@ -223,12 +265,12 @@ const GestionReclamations = () => {
                           </Button>
                         )}
                       </Td>
-                      <Td>{reclamation.user.nom}</Td>
-                      <Td>{reclamation.user.prenom}</Td>
+                      <Td>{reclamation.user.firstName}</Td>
+                      <Td>{reclamation.user.lastName}</Td>
                       <Td>{reclamation.user.cin}</Td>
                       <Td>
-                        <Tag colorScheme={reclamation.statut === "Résolu" ? "green" : "orange"}>
-                          {reclamation.statut}
+                        <Tag colorScheme={reclamation.status === false ? "orange" : "green"}>
+                          {reclamation.status === false ? "En attente" : "Résolu"}
                         </Tag>
                       </Td>
                       <Td>
@@ -253,35 +295,11 @@ const GestionReclamations = () => {
               </Table>
             </Box>
           </TabPanel>
-
-          <TabPanel>
-            <VStack align="stretch" spacing={4}>
-              {archivedReclamations.map(reclamation => (
-                <Box key={reclamation.id} p={4} borderWidth="1px" borderRadius="md" boxShadow="md">
-                  <VStack align="start">
-                    <Text fontWeight="bold">Date: {reclamation.date}</Text>
-                    <Text>
-                      Description: {showMore[reclamation.id] || reclamation.description.length <= 30 ? reclamation.description : `${reclamation.description.substring(0, 30)}...`}
-                      {reclamation.description.length > 30 && (
-                        <Button variant="link" colorScheme="orange" size="sm" onClick={() => handleShowMoreToggle(reclamation.id)}>
-                          {showMore[reclamation.id] ? "Afficher moins" : "Afficher plus"}
-                        </Button>
-                      )}
-                    </Text>
-                    <Text>Nom: {reclamation.user.nom}</Text>
-                    <Text>Prénom: {reclamation.user.prenom}</Text>
-                    <Text>CIN: {reclamation.user.cin}</Text>
-                    <Text>Statut: {reclamation.statut}</Text>
-                  </VStack>
-                </Box>
-              ))}
-            </VStack>
-          </TabPanel>
         </TabPanels>
       </Tabs>
 
       {/* Modal de suppression */}
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal isOpen={isDeleteOpen} onClose={onDeleteClose}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Confirmer la suppression</ModalHeader>
@@ -289,10 +307,10 @@ const GestionReclamations = () => {
             Êtes-vous sûr de vouloir supprimer cette réclamation ?
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="red" onClick={() => handleDeleteReclamation(selectedReclamation?.id)}>
+            <Button colorScheme="red" onClick={handleDeleteReclamation}>
               Supprimer
             </Button>
-            <Button variant="ghost" onClick={onClose} ml={3}>
+            <Button variant="ghost" onClick={onDeleteClose} ml={3}>
               Annuler
             </Button>
           </ModalFooter>

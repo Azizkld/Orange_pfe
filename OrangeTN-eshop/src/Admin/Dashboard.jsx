@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import GererClients from './ManageClients';
 import GestionContrats from './GestionContrats';
 import GestionOffres from './GestionOffres';
-import GestionReclamations from './Reclamation/GestionReclamations';
+import GestionReclamations from './Reclamation/rec';
 import TopNavBar from './TopNavBar';
 import { initialReclamations } from './Reclamation/GestionReclamations'; // Import your initialReclamations array
 

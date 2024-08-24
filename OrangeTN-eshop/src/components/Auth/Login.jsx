@@ -14,6 +14,7 @@ import {
   HStack,
 } from '@chakra-ui/react';
 import { Link, useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie'; // Import js-cookie
 import Footer from '../Footer';
 import Header from '../Header';
 
@@ -37,23 +38,23 @@ const LoginForm = () => {
       })
     })
       .then(response => {
+
         if (response.ok) {
+
           return response.json();
+
         }
         throw new Error('Network response was not ok.');
-        
-        
       })
       .then(data => {
+        console.log("test 3"+data);
+        console.log("test 4"+JSON.stringify(data));
+        console.log("test 5"+JSON.stringify(data.user_id));
 
-        console.log(data);
-        console.log('success');
-        
-        localStorage.setItem('accessToken', data.token); // Save token in localStorage
-       console.log(localStorage);
-       
-        
-        navigate('/'); // Redirect to the home page
+
+        Cookies.set('accessToken', data.access_token, { expires: 1 }); // Save token in cookies, expires in 1 day
+        Cookies.set('userID', data.user_id, { expires: 1 }); // Save user ID in cookies
+        navigate(`/user/${data.user_id}`); // Redirect to the home page with user ID in the URL
       })
       .catch(error => {
         console.log('There has been a problem with your fetch operation:', error);

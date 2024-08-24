@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css';
 import Home from './components/Home';
-import Logout from './components/Auth/Logout';
+
 /*import Apropos from './components/Apropos'; // Assurez-vous que ces composants existent
 import Profile from './components/Profile';
 import Numero from './components/Numero';
@@ -25,6 +25,8 @@ import Reclamation from './components/Reclamation/Reclamation';
 import ConvertEsimToSim from './components/Convertir/ConvertEsimToSim';
 import ConsultList from './components/Numero/ConsultList';
 import OfferList from './components/Offres/OfferList';
+import Login from './Admin/Login';
+import Logout from './components/Auth/Logout';
 
 
 import PaymentForm from './components/Paiement/PaymentForm';
@@ -35,9 +37,12 @@ import Sidebar from './Admin/Sidebar';
 // gerer clients
 import GererClients from './Admin/ManageClients';
 import AdminDashboard from './Admin/Dashboard';
+import Cookies from 'js-cookie';
 
 const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem('accessToken');
+  const token = Cookies.get('accessToken');
+  console.log('tokennn'+token)
+ 
   return token ? children : <Navigate to="/login" />;
   
 };
@@ -50,7 +55,7 @@ function App() {
       <div className="App">
         
           <Routes>
-          <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
+          <Route path="/user/:userID" element={<PrivateRoute><Home /></PrivateRoute>} />
 
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<EditProfile />} />
@@ -60,7 +65,8 @@ function App() {
             <Route path="/apropos" element={<AboutUs />} />
             <Route path="/sidebar" element={<Sidebar />} />
             <Route path="/Logout" element={<Logout />} />
-
+            <Route path="/Admin" element={<Login />} />
+            <Route path="/Logout" element={<Logout />} />
             
             
         
