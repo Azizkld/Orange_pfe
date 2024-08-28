@@ -27,6 +27,7 @@ import ConsultList from './components/Numero/ConsultList';
 import OfferList from './components/Offres/OfferList';
 import Login from './Admin/Login';
 import Logout from './components/Auth/Logout';
+import PrivateRoute from './components/Gards/PrivateRoute';
 
 
 import PaymentForm from './components/Paiement/PaymentForm';
@@ -39,16 +40,11 @@ import GererClients from './Admin/ManageClients';
 import AdminDashboard from './Admin/Dashboard';
 import Cookies from 'js-cookie';
 
-const PrivateRoute = ({ children }) => {
-  const token = Cookies.get('accessToken');
-  console.log('tokennn'+token)
- 
-  return token ? children : <Navigate to="/login" />;
-  
-};
+
 
 
 function App() {
+
   return (
 
     <Router>
@@ -56,11 +52,13 @@ function App() {
         
           <Routes>
           <Route path="/user/:userID" element={<PrivateRoute><Home /></PrivateRoute>} />
-
+          
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<EditProfile />} />
+            <Route path="/profile/:userID" element={<PrivateRoute><EditProfile /></PrivateRoute>} />
             <Route path="/acheter-numero" element={<AcheterNumero />} />
             <Route path="/convertir-sim/esim" element={<ConvertSimToEsim />} />
+            <Route path="/contrat/:userID" element={<PrivateRoute><ContratList /></PrivateRoute>} />
             <Route path="/contrat" element={<ContratList />} />
             <Route path="/apropos" element={<AboutUs />} />
             <Route path="/sidebar" element={<Sidebar />} />
@@ -76,8 +74,12 @@ function App() {
             <Route path="/Login" element={<LoginForm />} />
             
             <Route path="/numero" element={<ConsultList />} />
+            <Route path="/numero/:userID" element={<PrivateRoute><ConsultList /></PrivateRoute>} />
             <Route path="/convertir-esim/sim" element={<ConvertEsimToSim />} />
+
             <Route path="/Reclamation" element={<Reclamation />} />
+            <Route path="/Reclamation/:userID" element={<PrivateRoute><Reclamation /></PrivateRoute>} />
+            <Route path="/offres/:userID" element={<PrivateRoute><OfferList /></PrivateRoute>} />
             <Route path="/Offres" element={<OfferList />} />
           
             {/*<Route path="/apropos" element={<AboutUs />} />

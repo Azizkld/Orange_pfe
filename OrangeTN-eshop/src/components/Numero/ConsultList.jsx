@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -10,81 +10,78 @@ import {
   HStack,
   Text,
   SimpleGrid,
+  useToast,
 } from '@chakra-ui/react';
 import Header from '../Header';
 import Footer from '../Footer';
 import CardNumber from './CardNumber';
-
-const phoneNumbers = [
-  {
-    id: 1,
-    type: 'SIM',
-    number: '12345678',
-    activationDate: '2023-01-01',
-    pukCode: '12345678',
-    pinCode: '1234',
-    serialNumber: 'SN1234567890',
-  },
-  {
-    id: 2,
-    type: 'eSIM',
-    number: '87654321',
-    activationDate: '2023-02-01',
-    pukCode: '87654321',
-    pinCode: '4321',
-    imei: 'IMEI123456789012',
-    smartphoneType: 'iPhone 13',
-  },
-  {
-    id: 3,
-    type: 'SIM',
-    number: '11223344',
-    activationDate: '2023-03-01',
-    pukCode: '11223344',
-    pinCode: '5678',
-    serialNumber: 'SN0987654321',
-  },
-  {
-    id: 4,
-    type: 'eSIM',
-    number: '55667788',
-    activationDate: '2023-04-01',
-    pukCode: '55667788',
-    pinCode: '8765',
-    imei: 'IMEI098765432109',
-    smartphoneType: 'Galaxy S21',
-  },
-  {
-    id: 5,
-    type: 'SIM',
-    number: '99887766',
-    activationDate: '2023-05-01',
-    pukCode: '99887766',
-    pinCode: '4321',
-    serialNumber: 'SN5678901234',
-  },
-  {
-    id: 6,
-    type: 'eSIM',
-    number: '22334455',
-    activationDate: '2023-06-01',
-    pukCode: '22334455',
-    pinCode: '1234',
-    imei: 'IMEI112233445566',
-    smartphoneType: 'Galaxy S22',
-  },
-];
+import Cookies from 'js-cookie';
 
 const ConsultList = () => {
+  const [phoneNumbers, setPhoneNumbers] = useState([]);
   const [filterNumber, setFilterNumber] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const toast = useToast();
+
+  useEffect(() => {
+    const token = Cookies.get('accessToken'); // Get the token from cookies
+    const userID = Cookies.get('userID'); // Get the userID from cookies
+
+    if (!token || !userID) {
+      toast({
+        title: 'Erreur',
+        description: 'Utilisateur non authentifié.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Fetch the phone numbers based on the user's ID
+    fetch(`http://localhost:8050/api/Num/findAllNumById?utilisateurId=${userID}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data.isSuccessfull && Array.isArray(data.nums)) {
+          setPhoneNumbers(data.nums);
+        } else {
+          toast({
+            title: 'Erreur',
+            description: 'Impossible de récupérer les numéros.',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Erreur lors de la récupération des numéros:', error);
+        toast({
+          title: 'Erreur',
+          description: 'Erreur lors de la récupération des numéros.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+  }, [toast]);
 
   const filteredNumbers = phoneNumbers.filter(
     (phone) =>
-      (filterNumber === '' || phone.number.includes(filterNumber)) &&
-      (filterDate === '' || phone.activationDate.includes(filterDate))
+      (filterNumber === '' || phone.numPhoneNumber.toString().includes(filterNumber)) &&
+      (filterDate === '' || phone.numActivationDate.includes(filterDate))
   );
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -131,7 +128,7 @@ const ConsultList = () => {
         </Box>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
           {currentItems.map((phone) => (
-            <CardNumber key={phone.id} phone={phone} />
+            <CardNumber key={phone.numid} phone={phone} />
           ))}
         </SimpleGrid>
         <HStack justifyContent="center" mt={6}>

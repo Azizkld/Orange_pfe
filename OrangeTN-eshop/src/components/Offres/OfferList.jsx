@@ -1,20 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   SimpleGrid,
   Container,
   Text,
-  Button,
   HStack,
+  Button,
   Tabs,
-  TabPanels,
   TabPanel,
-  VStack,
-  FormControl,
-  FormLabel,
-  Input,
-  Image,
-  useDisclosure,
+  TabPanels,
   useToast,
   Modal,
   ModalOverlay,
@@ -23,94 +17,70 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
+  FormControl,
+  FormLabel,
+  Input,
 } from '@chakra-ui/react';
 import Header from '../Header';
 import Footer from '../Footer';
 import CardOffer from './CardOffer';
-import visaImage from '../../images/visa.png';
-
-const offers = [
-  { id: 1, nom: 'Offre 100 Go', desc: 'Description de l\'offre 100 Go', prix: 72, service_name: ['SMS Illimités', 'Appels Illimités', 'Internet 100 Go'], duree_expiration: 60 },
-  { id: 2, nom: 'Offre 75 Go', desc: 'Description de l\'offre 75 Go', prix: 60, service_name: ['SMS Illimités', 'Appels 500 minutes'], duree_expiration: 60 },
-  { id: 3, nom: 'Offre 55 Go', desc: 'Description de l\'offre 55 Go', prix: 55, service_name: ['Appels Illimités', 'SMS Illimités'], duree_expiration: 30 },
-  { id: 4, nom: 'Offre 30 Go', desc: 'Description de l\'offre 30 Go', prix: 30, service_name: ['SMS Illimités','Appels Illimités'], duree_expiration: 30 },
-  { id: 5, nom: 'Offre 25 Go', desc: 'Description de l\'offre 25 Go', prix: 22.5, service_name: ['SMS Illimités'], duree_expiration: 30 },
-  { id: 6, nom: 'Offre 20 Go', desc: 'Description de l\'offre 20 Go', prix: 18, service_name: ['SMS Illimités'], duree_expiration: 30 },
-  { id: 7, nom: 'Offre 15 Go', desc: 'Description de l\'offre 15 Go', prix: 15, service_name: ['SMS Illimités'], duree_expiration: 30 },
-  { id: 8, nom: 'Offre 10 Go', desc: 'Description de l\'offre 10 Go', prix: 10, service_name: ['SMS Illimités'], duree_expiration: 30 },
-  { id: 9, nom: 'Offre 5 Go', desc: 'Description de l\'offre 5 Go', prix: 5, service_name: ['SMS Illimités'], duree_expiration: 30 },
-];
-
-const itemsPerPage = 5;
-
-const PaymentForm = ({ onBack }) => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const toast = useToast();
-
-  const handleConfirmPayment = () => {
-    toast({
-      title: 'Paiement réussi',
-      description: 'Votre paiement a été effectué avec succès.',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    onClose(); // Close the confirmation modal after success
-  };
-
-  return (
-    <VStack spacing={4} align="stretch">
-      <Text fontSize="2xl" fontWeight="bold">Détails de paiement</Text>
-      <FormControl>
-        <FormLabel>Nom sur la carte</FormLabel>
-        <Input placeholder="Aziz Khaled" />
-      </FormControl>
-      <FormControl>
-        <FormLabel>Numéro de carte</FormLabel>
-        <Input placeholder="16 chiffres" />
-      </FormControl>
-      <SimpleGrid columns={2} spacing={4}>
-        <FormControl>
-          <FormLabel>Valide jusqu'au</FormLabel>
-          <Input placeholder="02/22" />
-        </FormControl>
-        <FormControl>
-          <FormLabel>CVV</FormLabel>
-          <Input placeholder="123" />
-        </FormControl>
-      </SimpleGrid>
-      <Button colorScheme="orange" w="full" onClick={onOpen}>PAYER</Button>
-      <Button variant="outline" onClick={onBack}>Retour aux offres</Button>
-
-      {/* Confirmation Modal */}
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Confirmer le paiement</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            Êtes-vous sûr de vouloir effectuer ce paiement ?
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="orange" onClick={handleConfirmPayment}>
-              Confirmer
-            </Button>
-            <Button variant="ghost" onClick={onClose} ml={3}>
-              Annuler
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </VStack>
-  );
-};
+import PaymentForm from '../Paiement/PaymentForm';
+import Cookies from 'js-cookie';
 
 const OfferList = () => {
+  const [offers, setOffers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [tabIndex, setTabIndex] = useState(0);
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [activeTab, setActiveTab] = useState(0); // Gérer l'onglet actif
+  const [isModalOpen, setIsModalOpen] = useState(false); // Gérer l'état ouvert du modal
+  const [phoneNumber, setPhoneNumber] = useState(''); // Gérer l'entrée du numéro de téléphone
+  const [selectedOfferId, setSelectedOfferId] = useState(null); // ID de l'offre sélectionnée
   const toast = useToast();
+
+  const itemsPerPage = 5;
+
+  useEffect(() => {
+    const token = Cookies.get('accessToken'); // Récupérer le token des cookies
+
+    fetch('http://localhost:8050/api/RatePlan/afficherTousOffres', {
+      headers: {
+        'Authorization': `Bearer ${token}`, // Inclure le token Bearer dans l'en-tête Authorization
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.isSuccessfull && data.rateplans) {
+          // Mapper la réponse de l'API pour inclure uniquement les champs pertinents
+          const formattedOffers = data.rateplans.map((offer) => ({
+            rp_id: offer.id, // Assurez-vous d'avoir un champ ID pour l'offre
+            rp_name: offer.rpName,
+            rp_desc: offer.rpDesc,
+            rp_price: offer.rpPrice,
+            rp_validation_jours: offer.rpValidationDays,
+          }));
+          setOffers(formattedOffers);
+        } else {
+          toast({
+            title: 'Erreur',
+            description: 'Impossible de récupérer les offres.',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Erreur lors de la récupération des offres:', error);
+        toast({
+          title: 'Erreur',
+          description: 'Impossible de récupérer les offres.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+  }, [toast]);
 
   const totalPages = Math.ceil(offers.length / itemsPerPage);
 
@@ -122,53 +92,94 @@ const OfferList = () => {
     setCurrentPage((prevPage) => Math.max(prevPage - 1, 1));
   };
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = offers.slice(indexOfFirstItem, indexOfLastItem);
-
-  const handleAcheterClick = () => {
-    onOpen();
+  const handleAcheterClick = (offerId) => {
+    setSelectedOfferId(offerId); // Définir l'ID de l'offre sélectionnée
+    setIsModalOpen(true); // Ouvrir le modal pour saisir le numéro de téléphone
   };
 
-  const handleSubmitPhoneNumber = () => {
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleConfirmPhoneNumber = () => {
     if (phoneNumber.trim() === '') {
       toast({
         title: 'Erreur',
-        description: 'Le numéro de téléphone ne peut pas être vide.',
+        description: 'Le numéro de téléphone est requis.',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
       return;
     }
-    toast({
-      title: 'Numéro soumis',
-      description: `Votre numéro ${phoneNumber} a été soumis avec succès.`,
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    setTabIndex(1);
-    onClose();
+
+    const userId = Cookies.get('userID'); // Récupérer l'ID de l'utilisateur connecté
+console.log('idut'+userId)
+console.log('selectedOfferId'+selectedOfferId)
+
+console.log('phoneNumber'+phoneNumber)
+
+    // Envoyer la requête POST pour ajouter le contrat
+    fetch('http://localhost:8050/api/v1/Contract/ajouterContract', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Cookies.get('accessToken')}`,
+      },
+      body: JSON.stringify({
+        utilisateurId: userId,
+        rateplanId: selectedOfferId,
+        numPhoneNumber: phoneNumber,
+      }),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Erreur lors de l\'ajout du contrat');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Contrat ajouté avec succès:', data);
+        toast({
+          title: 'Succès',
+          description: 'Le contrat a été ajouté avec succès.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+        setActiveTab(1); // Passer à l'interface de paiement après confirmation
+      })
+      .catch(error => {
+        console.error('Erreur lors de l\'ajout du contrat:', error);
+        toast({
+          title: 'Erreur',
+          description: 'Impossible d\'ajouter le contrat.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+
+    setIsModalOpen(false);
   };
 
-  const handleBackToOffers = () => {
-    setTabIndex(0);
-  };
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = offers.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
     <Box bg="gray.50" minH="100vh">
       <Header />
       <Container maxW="container.lg" py={10}>
-        <Tabs index={tabIndex} onChange={setTabIndex} variant="enclosed">
+        <Tabs index={activeTab} onChange={setActiveTab}>
           <TabPanels>
             <TabPanel>
               <Text fontSize="2xl" fontWeight="bold" mb={6} textAlign="center">
                 Nos Offres
               </Text>
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                {currentItems.map((offer) => (
-                  <CardOffer key={offer.id} offer={offer} onAcheterClick={handleAcheterClick} />
+                {currentItems.map((offer, index) => (
+                  <CardOffer key={index} offer={offer} onAcheterClick={() => handleAcheterClick(offer.rp_id)} />
                 ))}
               </SimpleGrid>
               <HStack justifyContent="center" mt={6}>
@@ -184,49 +195,46 @@ const OfferList = () => {
               </HStack>
             </TabPanel>
             <TabPanel>
-              <Box mt={6} p={6} boxShadow="md" bg="white" borderRadius="md">
-                <HStack mb={4} spacing={4}>
-                  <Box flex="1">
-                    <Image src={visaImage} alt="Card" />
-                  </Box>
-                  <Box flex="2">
-                    <PaymentForm onBack={handleBackToOffers} />
-                  </Box>
-                </HStack>
-              </Box>
+              <PaymentForm onBack={() => setActiveTab(0)} onPay={() => toast({
+                title: 'Paiement effectué',
+                description: 'Votre paiement a été réalisé avec succès.',
+                status: 'success',
+                duration: 3000,
+                isClosable: true,
+              })} />
             </TabPanel>
           </TabPanels>
         </Tabs>
-
-        {/* Modal for entering phone number */}
-        <Modal isOpen={isOpen} onClose={onClose}>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Entrez votre numéro de téléphone</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <FormControl isRequired>
-                <FormLabel>Numéro de téléphone</FormLabel>
-                <Input
-                  placeholder="Entrez votre numéro"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                />
-              </FormControl>
-            </ModalBody>
-
-            <ModalFooter>
-              <Button colorScheme="orange" onClick={handleSubmitPhoneNumber}>
-                Soumettre
-              </Button>
-              <Button variant="ghost" onClick={onClose} ml={3}>
-                Annuler
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
       </Container>
       <Footer />
+
+      {/* Modal pour entrer le numéro de téléphone */}
+      <Modal isOpen={isModalOpen} onClose={handleModalClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Entrez votre numéro de téléphone</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <FormControl>
+              <FormLabel>Numéro de téléphone</FormLabel>
+              <Input
+                placeholder="Entrez votre numéro de téléphone"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+              />
+            </FormControl>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button colorScheme="orange" onClick={handleConfirmPhoneNumber}>
+              Confirmer
+            </Button>
+            <Button variant="ghost" onClick={handleModalClose} ml={3}>
+              Annuler
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

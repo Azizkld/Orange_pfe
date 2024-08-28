@@ -13,8 +13,8 @@ import {
   VStack,
   HStack,
 } from '@chakra-ui/react';
-import { Link, useNavigate } from 'react-router-dom';
-import Cookies from 'js-cookie'; // Import js-cookie
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import Footer from '../Footer';
 import Header from '../Header';
 
@@ -24,6 +24,7 @@ const LoginForm = () => {
   const [cin, setCin] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = () => {
     fetch(BASE_URL, {
@@ -38,23 +39,18 @@ const LoginForm = () => {
       })
     })
       .then(response => {
-
         if (response.ok) {
-
           return response.json();
-
         }
         throw new Error('Network response was not ok.');
       })
       .then(data => {
-        console.log("test 3"+data);
-        console.log("test 4"+JSON.stringify(data));
-        console.log("test 5"+JSON.stringify(data.user_id));
+        Cookies.set('accessToken', data.access_token, { expires: 1 });
+        Cookies.set('userID', data.user_id, { expires: 1 });
 
-
-        Cookies.set('accessToken', data.access_token, { expires: 1 }); // Save token in cookies, expires in 1 day
-        Cookies.set('userID', data.user_id, { expires: 1 }); // Save user ID in cookies
-        navigate(`/user/${data.user_id}`); // Redirect to the home page with user ID in the URL
+        // Redirect to the originally intended route or to the home page
+        const from = location.state?.from?.pathname || `/user/${data.user_id}`;
+        navigate(from);
       })
       .catch(error => {
         console.log('There has been a problem with your fetch operation:', error);

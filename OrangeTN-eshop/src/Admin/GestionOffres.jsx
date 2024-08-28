@@ -44,11 +44,11 @@ const GestionOffres = () => {
   const toast = useToast();
 
   const servicesList = [
-    { id: 1, name: 'Appels Illimités' },
-    { id: 2, name: 'Appels Internationaux' },
-    { id: 4, name: 'SMS Illimités' },
-    { id: 5, name: 'SMS International' },
-    { id: 6, name: 'Internet Illimités' },
+    { id: 0, name: "Appels Illimités"},
+    { id: 1, name: 'Appels Internationaux' },
+    { id: 2, name: "SMS Illimités" },
+    { id: 3, name: 'SMS International' },
+    { id: 4, name: 'Internet Illimités' },
   ];
 
   // Fetch offers when the component mounts
@@ -162,7 +162,7 @@ const GestionOffres = () => {
           rpDesc: formData.rpDesc,
           rpPrice: formData.rpPrice,
           rpValidationDays: formData.rpValidationDays,
-          serviceIds: formData.serviceNames,
+          serviceNames: formData.serviceNames,
         }),
       });
 
@@ -241,7 +241,7 @@ const GestionOffres = () => {
           rpDesc: formData.rpDesc,
           rpPrice: formData.rpPrice,
           rpValidationDays: formData.rpValidationDays,
-          serviceIds: formData.serviceNames,
+          serviceNames: formData.serviceNames,
         }),
       });
 
@@ -372,18 +372,18 @@ const GestionOffres = () => {
                 <IconButton
                   icon={<FaEdit />}
                   colorScheme="blue"
-                  onClick={() => {
+                  onClick={async () => {
                     setSelectedOffre(offre);
-                    setFormData({
+                   await setFormData({
                       rpName: offre.rpName,
                       rpDesc: offre.rpDesc,
                       rpPrice: offre.rpPrice,
                       rpValidationDays: offre.rpValidationDays,
-                      serviceNames: offre.serviceNames.map(serviceName =>
-                        servicesList.find(service => service.name === serviceName)?.id || null
-                      ).filter(id => id !== null),
+                      serviceNames: offre.serviceNames,
                     });
                     onEditOpen();
+                   
+
                   }}
                   mr={2}
                 />
@@ -486,17 +486,20 @@ const GestionOffres = () => {
                 value={formData.rpValidationDays}
                 onChange={handleChange}
               />
-              <VStack align="start">
-                {servicesList.map((service) => (
-                  <Checkbox
-                    key={service.id}
-                    isChecked={formData.serviceNames.includes(service.id)}
-                    onChange={() => handleServiceChange(service.id)}
-                  >
-                    {service.name}
-                  </Checkbox>
-                ))}
-              </VStack>
+             <VStack align="start">
+  {servicesList.map((service) => (
+    <Checkbox
+      key={service.id}
+      isChecked={formData.serviceNames.some(
+        (name) => name && name.trim() === service.name.trim()
+      )}
+      onChange={() => handleServiceChange(service.id)}
+    >
+      {service.name}
+    </Checkbox>
+  ))}
+</VStack>
+
             </VStack>
           </ModalBody>
           <ModalFooter>

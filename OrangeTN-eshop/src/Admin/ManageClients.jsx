@@ -32,6 +32,7 @@ const GererClients = () => {
   const [utilisateurs, setUtilisateurs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [userToDelete, setUserToDelete] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [activeTab, setActiveTab] = useState('waiting');
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
@@ -80,8 +81,9 @@ const GererClients = () => {
   }, [activeTab]);
 
   const handleDeleteUser = (id) => {
+    setSelectedImage(null); // Clear selected image to ensure only one modal opens
     setUserToDelete(id);
-    onOpen();
+    onOpen(); // Open delete confirmation modal
   };
 
   const confirmDeleteUser = async () => {
@@ -182,6 +184,12 @@ const GererClients = () => {
     }
   };
 
+  const openImageModal = (imageSrc) => {
+    setUserToDelete(null); // Clear userToDelete to ensure only one modal opens
+    setSelectedImage(imageSrc);
+    onOpen(); // Open image modal
+  };
+
   const filteredUtilisateurs = utilisateurs.filter(utilisateur =>
     `${utilisateur.utFName} ${utilisateur.utLName}`.toLowerCase().includes(searchTerm.toLowerCase()) &&
     (activeTab === 'verified' ? utilisateur.utStatus : !utilisateur.utStatus)
@@ -223,6 +231,8 @@ const GererClients = () => {
               <Th>Nom Prénom</Th>
               <Th>CIN</Th>
               <Th>Email</Th>
+              <Th>CIN Front Image</Th>
+              <Th>CIN Back Image</Th>
               <Th>Actions</Th>
             </Tr>
           </Thead>
@@ -234,6 +244,26 @@ const GererClients = () => {
                   <Td>{utilisateur.utFName} {utilisateur.utLName}</Td>
                   <Td>{utilisateur.utCin}</Td>
                   <Td>{utilisateur.utMail}</Td>
+                  <Td>
+                    <img
+                      src={utilisateur.utCinFrontImage}
+                      alt="CIN Front"
+                      width="50px"
+                      height="auto"
+                      onClick={() => openImageModal(utilisateur.utCinFrontImage)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </Td>
+                  <Td>
+                    <img
+                      src={utilisateur.utCinBacktImage}
+                      alt="CIN Back"
+                      width="50px"
+                      height="auto"
+                      onClick={() => openImageModal(utilisateur.utCinBacktImage)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </Td>
                   <Td>
                     {activeTab === 'waiting' && (
                       <IconButton
@@ -255,7 +285,7 @@ const GererClients = () => {
               ))
             ) : (
               <Tr>
-                <Td colSpan={5} textAlign="center">
+                <Td colSpan={7} textAlign="center">
                   Aucun utilisateur trouvé.
                 </Td>
               </Tr>
@@ -264,23 +294,42 @@ const GererClients = () => {
         </Table>
       </Box>
 
+      {/* Image Zoom Modal */}
+      {selectedImage && (
+        <Modal isOpen={isOpen && selectedImage} onClose={onClose}>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Image</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <img src={selectedImage} alt="Zoomed CIN" style={{ width: '100%' }} />
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="ghost" onClick={onClose}>Fermer</Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
+
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Confirmation de suppression</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            Êtes-vous sûr de vouloir supprimer cet utilisateur ?
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="red" mr={3} onClick={confirmDeleteUser}>
-              Supprimer
-            </Button>
-            <Button variant="ghost" onClick={onClose}>Annuler</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      {userToDelete && (
+        <Modal isOpen={isOpen && userToDelete} onClose={onClose}>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Confirmation de suppression</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              Êtes-vous sûr de vouloir supprimer cet utilisateur ?
+            </ModalBody>
+            <ModalFooter>
+              <Button colorScheme="red" mr={3} onClick={confirmDeleteUser}>
+                Supprimer
+              </Button>
+              <Button variant="ghost" onClick={onClose}>Annuler</Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
     </Box>
   );
 };

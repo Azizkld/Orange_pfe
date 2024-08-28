@@ -1,7 +1,5 @@
 import React from 'react';
-import { Box, Text, VStack, Badge, Image, Button, HStack } from '@chakra-ui/react';
-import defaultImage from '../../images/contrat.png'; // Update the path to your default image
-import { Link } from 'react-router-dom';
+import { Box, Text, VStack, Badge, Button, HStack } from '@chakra-ui/react';
 
 const ContratCard = ({ contrat, onGeneratePDF }) => {
   if (!contrat) {
@@ -11,48 +9,65 @@ const ContratCard = ({ contrat, onGeneratePDF }) => {
   return (
     <Box
       border="1px"
-      borderColor="gray.300"
-      borderRadius="md"
-      p={4}
+      borderColor="gray.200"
+      borderRadius="lg"
+      p={6}
       textAlign="center"
       bg="white"
-      w="250px"
+      w="280px"
+      boxShadow="lg"
+      _hover={{ transform: "scale(1.03)", transition: "all 0.3s ease-in-out" }}
     >
-      <VStack spacing={3}>
-        <Text fontSize="lg" fontWeight="bold" color="orange.500">
+      <VStack spacing={4}>
+        <Text fontSize="xl" fontWeight="extrabold" color="orange.500">
           Code: {contrat.code}
         </Text>
-        {/*<Image src={defaultImage} alt="Contrat" boxSize="150px" />*/}
-        <Text fontSize="sm" color="gray.500">
-          Statut: {contrat.status}
+
+        <Text fontSize="md" color="gray.600">
+          Statut:{" "}
+          <Badge
+            colorScheme={contrat.status === 'expiré' ? 'red' : 'green'}
+            fontSize="0.8em"
+            borderRadius="full"
+            px={3}
+            py={1}
+          >
+            {contrat.status}
+          </Badge>
         </Text>
-        <Badge colorScheme={contrat.status === 'expiré' ? 'red' : 'green'}>
-          {contrat.status}
-        </Badge>
-        <Text fontSize="sm" color="gray.500">
-          Activation: {contrat.activationDate}
+
+        <Text fontSize="sm" color="gray.600">
+          Activation: <Text as="span" fontWeight="semibold">{contrat.activationDate}</Text>
         </Text>
-        <Text fontSize="sm" color="gray.500">
-          Expiration: {contrat.expirationDate}
+        <Text fontSize="sm" color="gray.600">
+          Expiration: <Text as="span" fontWeight="semibold">{contrat.expirationDate}</Text>
         </Text>
-        <Text fontSize="sm" color="gray.500">
-          Numéro: {contrat.numero}
+        <Text fontSize="sm" color="gray.600">
+          Numéro: <Text as="span" fontWeight="semibold">{contrat.numero}</Text>
         </Text>
-        <Text fontSize="sm" color="gray.500">
-          Type de numéro: {contrat.typeNumero}
+        <Text fontSize="sm" color="gray.600">
+          Type de numéro: <Text as="span" fontWeight="semibold">{contrat.typeNumero}</Text>
         </Text>
-        <Text fontSize="sm" color="gray.500">
-          Offre: {contrat.offreName}
+        <Text fontSize="sm" color="gray.600">
+          Offre: <Text as="span" fontWeight="semibold">{contrat.offreName}</Text>
         </Text>
-        <HStack spacing={3} mt={4}>
-          
-          <Button colorScheme="orange" size="sm" onClick={() => onGeneratePDF(contrat)}>
-          
+
+        <HStack spacing={4} mt={6}>
+          <Button
+            colorScheme="orange"
+            size="sm"
+            onClick={() => onGeneratePDF(contrat)}
+            _hover={{ bg: "orange.600" }}
+          >
             Télécharger PDF
-           
           </Button>
-          
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+            _hover={{ bg: "gray.100" }}
+          >
             Imprimer
           </Button>
         </HStack>

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-
 import {
   Box,
   SimpleGrid,
@@ -7,55 +6,83 @@ import {
   Text,
   Button,
   HStack,
+  useToast,
 } from '@chakra-ui/react';
 import Header from '../Header';
 import Footer from '../Footer';
 import ContratCard from './ContratCard';
 import PdfGenerated from './PdfGenerated';
-import axios from 'axios';
-
-
-const contrats = [
-  { id: 1, code: 'C001', status: 'actif', activationDate: '2023-01-01', expirationDate: '2024-01-01', numero: '12345678', typeNumero: 'SIM', offreName: 'Offre 100 Go' },
-  { id: 2, code: 'C002', status: 'expiré', activationDate: '2022-01-01', expirationDate: '2023-01-01', numero: '87654321', typeNumero: 'eSIM', offreName: 'Offre 75 Go' },
-  { id: 3, code: 'C003', status: 'actif', activationDate: '2023-02-01', expirationDate: '2024-02-01', numero: '11223344', typeNumero: 'SIM', offreName: 'Offre 55 Go' },
-  { id: 4, code: 'C004', status: 'expiré', activationDate: '2022-02-01', expirationDate: '2023-02-01', numero: '55667788', typeNumero: 'eSIM', offreName: 'Offre 30 Go' },
-  { id: 5, code: 'C005', status: 'actif', activationDate: '2023-03-01', expirationDate: '2024-03-01', numero: '99887766', typeNumero: 'SIM', offreName: 'Offre 25 Go' },
-  { id: 6, code: 'C006', status: 'expiré', activationDate: '2022-03-01', expirationDate: '2023-03-01', numero: '22334455', typeNumero: 'eSIM', offreName: 'Offre 20 Go' },
-  { id: 7, code: 'C007', status: 'actif', activationDate: '2023-04-01', expirationDate: '2024-04-01', numero: '33445566', typeNumero: 'SIM', offreName: 'Offre 15 Go' },
-  { id: 8, code: 'C008', status: 'expiré', activationDate: '2022-04-01', expirationDate: '2023-04-01', numero: '44556677', typeNumero: 'eSIM', offreName: 'Offre 10 Go' },
-  { id: 9, code: 'C009', status: 'actif', activationDate: '2023-05-01', expirationDate: '2024-05-01', numero: '55667788', typeNumero: 'SIM', offreName: 'Offre 5 Go' },
-];
+import Cookies from 'js-cookie';
 
 const itemsPerPage = 5;
 
 const ContratList = () => {
-  /*
   const [contrats, setContrats] = useState([]);
-  const fetchData = async () => {
-
-  //  const tokenLogin = localStorage.getItem('tokenLogin');
-    try {
-      const response = await axios.get(`http://localhost:8050/api/v1/Contract/findAllContract`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-           // 'Authorization': `Bearer ${tokenLogin}`,
-          }
-        }
-      );
-console.log('test :'+JSON.stringify(response.data))
-     setContrats(response.data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  useEffect(() => {
-    fetchData();
-  }, []);
-*/
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedContrat, setSelectedContrat] = useState(null);
+  const toast = useToast();
+
+  useEffect(() => {
+    const token = Cookies.get('accessToken'); // Get the token from cookies
+    const userID = Cookies.get('userID'); // Get the userID from cookies
+
+    if (!token || !userID) {
+      toast({
+        title: 'Erreur',
+        description: 'Utilisateur non authentifié.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Fetch the contracts based on the user's ID
+    fetch(`http://localhost:8050/api/v1/Contract/findAllContractById/${userID}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data.isSuccessfull && Array.isArray(data.contracts)) {
+          setContrats(data.contracts.map(contract => ({
+            id: contract.id,
+            code: contract.coCode,
+            status: contract.coStatus ? 'actif' : 'expiré',
+            activationDate: contract.coActivDate,
+            expirationDate: contract.coExpirDate,
+            numero: contract.num.numPhoneNumber,
+            typeNumero: contract.num.numType,
+            offreName: contract.rateplan.rpName,
+          })));
+        } else {
+          toast({
+            title: 'Erreur',
+            description: 'Impossible de récupérer les contrats.',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Erreur lors de la récupération des contrats:', error);
+        toast({
+          title: 'Erreur',
+          description: 'Erreur lors de la récupération des contrats.',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+  }, [toast]);
 
   const totalPages = Math.ceil(contrats.length / itemsPerPage);
 

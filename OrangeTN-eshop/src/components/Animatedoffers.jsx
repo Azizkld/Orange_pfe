@@ -2,9 +2,9 @@ import React from 'react';
 import { Box, Image, Text, Button, Center, IconButton, Stack } from '@chakra-ui/react';
 import Slider from 'react-slick';
 import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
-import offre1 from '../images/offre1.jpeg';
-import offre2 from '../images/offre2.jpeg';
-import offre3 from '../images/offre3.jpeg';
+import offre1 from '../images/offre1.jpg';
+import offre2 from '../images/offre2.jpg';
+import offre3 from '../images/offre3.jpg';
 import animated from '../images/animatedimage.png';
 
 const slides = [
@@ -41,17 +41,7 @@ const slides = [
     price: '54د.ت',
     offer: '75 Go',
   },
-  {
-    id: 4,
-    src: animated,
-    alt: 'Image 4',
-    title: 'Promo',
-    subtitle: 'عرض الجو',
-    description: '100% Bonus كل إثنين و خميس',
-    buttonText: 'Découvrir',
-    price: '54د.ت',
-    offer: '75 Go',
-  },
+  
 ];
 
 const Arrow = ({ onClick, icon }) => (
@@ -76,8 +66,8 @@ const AnimatedOffers = () => {
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
-    autoplay: false,
-    autoplaySpeed: 2000,
+    autoplay: true,
+    autoplaySpeed:2000,
     nextArrow: <Arrow icon={<ChevronRightIcon boxSize={6} />} />,
     prevArrow: <Arrow icon={<ChevronLeftIcon boxSize={6} />} />,
   };

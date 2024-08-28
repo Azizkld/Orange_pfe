@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Flex, Text } from '@chakra-ui/react';
+import Cookies from 'js-cookie'; // Import js-cookie to get the userID from the cookie
 import Logout from './Auth/Logout'; // Import the Logout component
 
 const slugData = ["APROPOS", "PROFILE", "NUMERO", "OFFRES", "CONTRAT", "RECLAMATION"];
 const numeroSubmenu = ["Acheter Numero", "convertir sim/esim", "convertir esim/sim"];
-//const profileSubmenu = ["créer un compte", "se connecter", ];
 
 const Nav = ({ slug }) => {
   const [activeLink, setActiveLink] = useState(slug);
   const [isSubmenuOpen, setIsSubmenuOpen] = useState(false);
+  const userID = Cookies.get('userID'); // Retrieve the userID from cookies
 
   const handleClick = (link) => {
     setActiveLink(link);
@@ -31,8 +32,8 @@ const Nav = ({ slug }) => {
           px={{ base: 1, lg: 2 }}
           borderRadius="full"
           position="relative"
-          onMouseEnter={slug === "NUMERO"  ? handleMouseEnter : null}
-          onMouseLeave={slug === "NUMERO"  ? handleMouseLeave : null}
+          onMouseEnter={slug === "NUMERO" ? handleMouseEnter : null}
+          onMouseLeave={slug === "NUMERO" || slug === "PROFILE" ? handleMouseLeave : null}
           _after={{
             content: '""',
             position: 'absolute',
@@ -50,9 +51,10 @@ const Nav = ({ slug }) => {
               transform: 'scaleX(1)',
             },
           }}
+          
         >
           <RouterLink
-            to={`/${slug}`}
+            to={slug === "PROFILE" ? `/profile/${userID}`: slug === "RECLAMATION" ? `/Reclamation/${userID}` : slug === "NUMERO" ? `/numero/${userID}` : slug === "OFFRES" ? `/offres/${userID}` : slug === "CONTRAT" ? `/contrat/${userID}` : `/${slug.toLowerCase()}`} // Adjust the URL for OFFRES
             style={{
               textDecoration: 'none',
               fontSize: '14px',
@@ -68,6 +70,7 @@ const Nav = ({ slug }) => {
           >
             {slug}
           </RouterLink>
+          
           {slug === "NUMERO" && isSubmenuOpen && (
             <Box
               position="absolute"
@@ -110,7 +113,6 @@ const Nav = ({ slug }) => {
               ))}
             </Box>
           )}
-          
         </Box>
       ))}
     </Flex>

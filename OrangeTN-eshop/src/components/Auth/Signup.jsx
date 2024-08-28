@@ -35,7 +35,105 @@ const SignupForm = () => {
     setUtCinBackImage(event.target.files[0]);
   };
 
+  const validateEmail = (email) => {
+    // Basic email pattern check
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const handleSubmit = async () => {
+    // Input validation
+    if (!firstname) {
+      toast({
+        title: 'Erreur',
+        description: 'Le champ "Nom" est obligatoire.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (!lastname) {
+      toast({
+        title: 'Erreur',
+        description: 'Le champ "Prénom" est obligatoire.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (!email) {
+      toast({
+        title: 'Erreur',
+        description: 'Le champ "Email" est obligatoire.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (!validateEmail(email)) {
+      toast({
+        title: 'Erreur',
+        description: 'Veuillez entrer un email valide.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (!cin) {
+      toast({
+        title: 'Erreur',
+        description: 'Le champ "CIN" est obligatoire.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (cin.length !== 8 || !/^\d+$/.test(cin)) {
+      toast({
+        title: 'Erreur',
+        description: 'Le CIN doit contenir exactement 8 chiffres.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (!password) {
+      toast({
+        title: 'Erreur',
+        description: 'Le champ "Mot de passe" est obligatoire.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (!utCinFrontImage) {
+      toast({
+        title: 'Erreur',
+        description: 'La photo du CIN (Recto) est obligatoire.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (!utCinBackImage) {
+      toast({
+        title: 'Erreur',
+        description: 'La photo du CIN (Verso) est obligatoire.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     const formData = new FormData();
     formData.append('firstname', firstname);
     formData.append('lastname', lastname);
